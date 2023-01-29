@@ -15,6 +15,29 @@ room_color = (105, 43, 49)
 def magnitude(vec):
     return math.sqrt(vec[0]**2 + vec[1]**2)
 
+def getinsideroom(pos,size):
+    inside = False
+    closestedge = None
+    closestblock = None
+    for box in rooms:
+        #get if inside any boxes
+        boxpos = box.position
+        boxhalfsize = numpy.divide(box.size,2) #we use half size to get from center to edge
+
+        if (pos[0] < (boxpos[0] + boxhalfsize[0] - size) and pos[0] > (boxpos[0] - boxhalfsize[0] + size)):
+            if (pos[1] < (boxpos[1] + boxhalfsize[1] - size) and pos[1] > (boxpos[1] - boxhalfsize[1] + size)):
+                inside = True
+    
+    #if not inside then find the closest edge
+    updown = 0
+    leftright = 0
+    if not inside:
+        for box in rooms:
+            pass
+
+    #return edge and block
+    return (inside, closestblock, closestedge)
+
 #setup reusable classes
 class player:
     def __init__(self, color):
@@ -28,7 +51,10 @@ class player:
         movevec = [leftright, updown]
         if magnitude(movevec) > 1:
             movevec = numpy.divide(movevec, magnitude(movevec))
-        self.position = numpy.add(self.position, numpy.multiply(numpy.multiply(movevec,self.speed), deltatime))
+        #collision is amazing
+        inroom, nearroom, nearedge = getinsideroom(self.position,12)
+        if inroom:
+            self.position = numpy.add(self.position, numpy.multiply(numpy.multiply(movevec,self.speed), deltatime))
 
 class projectile:
     def __init__(self, vel, pos, fromplr, damage):
@@ -44,6 +70,7 @@ class room: #the name room is for ease of access
 
 #some temp vars
 rooms.append(room([0,0], [800,800]))
+rooms.append(room([500,0], [400,200]))
 plr = player((252, 254, 248))
 
 def lerp(a,b,f):
@@ -91,5 +118,4 @@ while running:
 
     pygame.display.flip()
 
-# Done! Time to quit.
 pygame.quit()
