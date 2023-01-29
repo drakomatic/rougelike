@@ -15,6 +15,14 @@ room_color = (105, 43, 49)
 def magnitude(vec):
     return math.sqrt(vec[0]**2 + vec[1]**2)
 
+def getedges(center,size):
+    halfsize = numpy.divide(size,2)
+    topedge = center[1] + halfsize[1]
+    rightedge = center[0] + halfsize[0]
+    bottomedge = center[1] - halfsize[1]
+    leftedge = center[0] - halfsize[0]
+    return (rightedge, bottomedge, leftedge, topedge)
+
 def getinsideroom(pos,size):
     inside = False
     closestedge = None
@@ -29,11 +37,16 @@ def getinsideroom(pos,size):
                 inside = True
     
     #if not inside then find the closest edge
-    updown = 0
-    leftright = 0
+    lastcompared = None
     if not inside:
         for box in rooms:
-            pass
+            edges = getedges(box.position, box.size)
+            for num, edge in enumerate(edges):
+                compared = abs(edge - pos[num % 2 and 1 or 0])
+                if lastcompared == None or compared < lastcompared:
+                    lastcompared = compared
+                    closestedge = num
+                    closestblock = box
 
     #return edge and block
     return (inside, closestblock, closestedge)
@@ -53,8 +66,13 @@ class player:
             movevec = numpy.divide(movevec, magnitude(movevec))
         #collision is amazing
         inroom, nearroom, nearedge = getinsideroom(self.position,12)
-        if inroom:
-            self.position = numpy.add(self.position, numpy.multiply(numpy.multiply(movevec,self.speed), deltatime))
+        self.position = numpy.add(self.position, numpy.multiply(numpy.multiply(movevec,self.speed), deltatime))
+        if not inroom:
+            xory = (nearedge % 2 == 0)
+            x = (xory and getedges(nearroom.position, nearroom.size)[nearedge] + (nearedge < 1 and -13 or 13) or self.position[0])
+            y = (xory and self.position[1] or getedges(nearroom.position, nearroom.size)[nearedge] + (nearedge > 1 and -13 or 13))
+            self.position = [x,y]
+
 
 class projectile:
     def __init__(self, vel, pos, fromplr, damage):
