@@ -30,6 +30,13 @@ class player:
             movevec = numpy.divide(movevec, magnitude(movevec))
         self.position = numpy.add(self.position, numpy.multiply(numpy.multiply(movevec,self.speed), deltatime))
 
+class projectile:
+    def __init__(self, vel, pos, fromplr, damage):
+        self.position = pos
+        self.velocity = vel
+        self.damage = damage
+        self.isfromplayer = fromplr
+
 class room: #the name room is for ease of access
     def __init__(self, position, size):
         self.position = position
@@ -77,7 +84,8 @@ while running:
     plr.update(deltatime)
 
     #update the camera pos towards the player pos
-    cameraposition = lerp2(cameraposition, plr.position,3 * deltatime)
+    centeredmousepos = numpy.subtract(pygame.mouse.get_pos(),numpy.divide(scrsize,2))
+    cameraposition = lerp2(cameraposition, lerp2(plr.position, numpy.add(centeredmousepos, plr.position),0.2),6 * deltatime)
 
     renderall()
 
