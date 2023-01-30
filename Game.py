@@ -1,6 +1,7 @@
 import pygame
 import numpy
 import math
+from random import *
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -12,6 +13,10 @@ rooms = []
 cameraposition = [0,0]
 room_color = (105, 43, 49)
 allprojs = []
+allenims = []
+boxsizes = (400,800)
+
+
 
 def magnitude(vec):
     return math.sqrt(abs(vec[0]**2 + vec[1]**2))
@@ -103,13 +108,30 @@ class projectile:
     def update(self, deltatime):
         self.position = numpy.add(self.position, numpy.multiply(self.velocity, deltatime))
 
+class enemy():
+    def __init__(self, position, speed, aitype, health, weapon):
+        self.position = position
+        self.speed = speed
+        self.type = aitype
+        self.health = health
+        self.weapon = weapon
+        self.radius = 18
+    def update(self,deltatime):
+        #check if bullet is collided
+        global allprojs
+        for i, bull in enumerate(allprojs):
+            if magnitude(numpy.subtract(bull.position, self.position)) <= self.radius:
+                self.health -= bull.damage
+                allprojs.pop(i)
+
+
 class room: #the name room is for ease of access
     def __init__(self, position, size):
         self.position = position
         self.size = size
 
 #some temp vars
-rooms.append(room([0,0], [1200,1200]))
+initroom = rooms.append(room([0,0], [randint(boxsizes[0], boxsizes[1]),randint(boxsizes[0], boxsizes[1])]))
 plr = player((252, 254, 248),weapon(600,1,600,True,4))
 
 def lerp(a,b,f):
@@ -125,7 +147,7 @@ def convertposition(pos):
     return numpy.subtract(numpy.add(pos,numpy.divide(scrsize,2)), cameraposition)
 
 def renderall():
-    global rooms, plr, screen, room_color, allprojs
+    global rooms, plr, screen, room_color, allprojs, allenims
     screen.fill((42, 24, 38))
 
     #render all rooms (order shouldn't matter because they are all the same color)
@@ -137,9 +159,25 @@ def renderall():
     for bullet in allprojs:
         pygame.draw.circle(screen, (255,188,22), convertposition(bullet.position),4)
 
+    for enem in allenims:
+        pygame.draw.circle(screen, (255,0,0), convertposition(enem.position),enem.radius)
+
     #render player on top of everything
     pygame.draw.circle(screen, plr.color, convertposition(plr.position),12)
 
+for i in range(randint(5,20)):
+    prevroom = rooms[len(rooms)-1]
+    updown = randint(0,20) % 2 == 0
+    xsize = len(rooms) % 2 == 0 and randint(boxsizes[0], boxsizes[1]) or (updown and 200 or 300)
+    ysize = len(rooms) % 2 == 0 and randint(boxsizes[0], boxsizes[1]) or (not updown and 200 or 300)
+    ypos = (updown and prevroom.position[1] + prevroom.size[1]/2 + ysize/2 - 100 or prevroom.position[1])
+    xpos = (not updown and prevroom.position[0] + prevroom.size[0]/2 + xsize/2 - 100 or prevroom.position[0])
+    if updown:
+        for i in range(randint(2,5)):
+            allenims.append(enemy([randint(int(xsize/-2),int(xsize/2)) + xpos,randint(int(ysize/-2),int(ysize/2)) + ypos],120,None,20,weapon(120,1,300,False,12)))
+
+    newroom = room([xpos, ypos], [xsize, ysize])
+    rooms.append(newroom)
 
 #main loop
 running = True
@@ -151,8 +189,17 @@ while running:
     deltatime = clock.tick(clock.get_fps())/1000
 
     plr.update(deltatime)
-    for i in allprojs:
-        i.update(deltatime)
+    for i, pro in enumerate(allprojs):
+        pro.update(deltatime)
+        isin, nearroom, nearedge = getinsideroom(pro.position,4)
+        if not isin:
+            allprojs.pop(i)
+
+    for i, enem in enumerate(allenims):
+        enem.update(deltatime)
+        if enem.health <= 0:
+            allenims.pop(i)
+
 
     #update the camera pos towards the player pos
     centeredmousepos = numpy.subtract(pygame.mouse.get_pos(),numpy.divide(scrsize,2))
